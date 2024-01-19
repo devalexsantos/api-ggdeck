@@ -16,4 +16,14 @@ export class GamesRepository {
 
     return game
   }
+
+  async findByName({ name }: { name: string }) {
+    const game = await prisma.games.findMany({
+      where: {
+        name,
+      },
+    })
+
+    return game
+  }
 }

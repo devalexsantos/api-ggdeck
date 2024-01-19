@@ -1,6 +1,7 @@
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { GamesRepository } from '../../repositories/prisma-games-repository'
 import { z } from 'zod'
+import { GameAlreadyExistsError } from '../../repositories/erros/game-already-exists'
 
 export async function create(request: FastifyRequest, reply: FastifyReply) {
   const bodySchema = z.object({
@@ -9,12 +10,20 @@ export async function create(request: FastifyRequest, reply: FastifyReply) {
 
   const { name } = bodySchema.parse(request.body)
 
+  const gamesRespository = new GamesRepository()
+
+  const gameWithSameEmail = await gamesRespository.findByName({ name })
+
   try {
-    const gamesRespository = new GamesRepository()
+    if (gameWithSameEmail.length > 0) {
+      throw new GameAlreadyExistsError()
+    }
     const gameCreated = await gamesRespository.create({ name })
 
     return reply.status(201).send(gameCreated)
   } catch (err) {
-    return reply.status(500).send(err)
+    if (err instanceof GameAlreadyExistsError) {
+      return reply.status(409).send({ message: 'Você já zerou este jogo.' })
+    }
   }
 }
